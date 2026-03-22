@@ -1,0 +1,12 @@
+cmake_minimum_required(VERSION 3.16)
+project(polyfft)
+
+find_package(Qt6 REQUIRED COMPONENTS Widgets)
+
+add_executable(polyfft
+    src/main.cpp
+    src/points.cpp src/hist.cpp src/dft.cpp
+)
+
+target_link_libraries(polyfft Qt6::Widgets)
+set_property(TARGET polyfft PROPERTY AUTOMOC ON)
