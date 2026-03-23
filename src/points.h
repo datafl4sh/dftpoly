@@ -8,6 +8,8 @@
 
 #include <complex>
 
+#include <Eigen/Dense>
+
 #pragma once
 
 class PolygonEditorWidget : public QWidget
@@ -18,6 +20,9 @@ public:
     PolygonEditorWidget(QWidget *parent = nullptr);
 
     void setShowLabels(bool enabled);
+
+    QPointF barycenter() const;
+    Eigen::Matrix2d inertiaMatrix() const;
 
 signals:
     void pointMoved(int index, QPointF worldPos);
@@ -41,6 +46,7 @@ protected:
     void drawAxes(QPainter& p);
     void drawPolygon(QPainter& p);
     void drawPoints(QPainter& p);
+    void drawBoundingBox(QPainter& p);
     void resizeEvent(QResizeEvent *) override;
 
     void mousePressEvent(QMouseEvent *event) override;

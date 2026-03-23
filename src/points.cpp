@@ -10,6 +10,38 @@
 #include "points.h"
 #include "dft.h"
 
+
+void drawArrow(QPainter &painter, QPointF start, QPointF end)
+{
+    painter.drawLine(start, end);
+
+    const double arrowSize = 10.0;
+    QLineF line(start, end);
+    auto linelen = std::hypot(line.dx(), line.dy());
+
+    if (linelen < 1.1*arrowSize)
+        return;
+
+    
+    double angle = std::atan2(-line.dy(), line.dx());
+
+    QPointF arrowP1 = end - QPointF(
+        std::sin(angle + M_PI / 3.0) * arrowSize,
+        std::cos(angle + M_PI / 3.0) * arrowSize
+    );
+
+    QPointF arrowP2 = end - QPointF(
+        std::sin(angle + M_PI - M_PI / 3.0) * arrowSize,
+        std::cos(angle + M_PI - M_PI / 3.0) * arrowSize
+    );
+
+    QPolygonF arrowHead;
+    arrowHead << end << arrowP1 << arrowP2;
+
+    painter.setBrush(painter.pen().color());
+    painter.drawPolygon(arrowHead);
+}
+
 PolygonEditorWidget::PolygonEditorWidget(QWidget *parent)
     : QWidget(parent)
 {
@@ -60,6 +92,74 @@ void PolygonEditorWidget::rescalePolygon(double scale)
     update();
 }
 
+QPointF PolygonEditorWidget::barycenter() const
+{
+    QPointF ret{0.0, 0.0};
+    for (const QPointF& p : m_points) {
+        ret += p;
+    }
+    ret /= m_points.size();
+    return ret;
+}
+
+QVector<QPointF> quadrature_points(const QPointF& a,
+    const QPointF& b, const QPointF& c)
+{
+    QVector<QPointF> ret;
+    QPointF qp0 = a/6.0 + b/6.0 + 2.0*c/3.0;
+    QPointF qp1 = a/6.0 + 2.0*b/3.0 + c/6.0;
+    QPointF qp2 = 2.0*a/3.0 + b/6.0 + c/6.0;
+    ret.append(qp0);
+    ret.append(qp1);
+    ret.append(qp2);
+    return ret;
+}
+
+float signed_area(const QPointF& a,
+    const QPointF& b, const QPointF& c)
+{
+    QPointF va = b-a;
+    QPointF vb = c-a;
+    return 0.5*(va.x()*vb.y() - vb.x()*va.y());
+}
+
+Eigen::Matrix2d mass(const QPointF p)
+{
+    Eigen::Matrix2d ret;
+    ret << p.x()*p.x(), p.x()*p.y(), p.y()*p.x(), p.y()*p.y();
+    return ret;
+}
+
+Eigen::Matrix2d inertia(const QPointF p)
+{
+    Eigen::Matrix2d ret;
+    ret << p.y()*p.y(), -p.x()*p.y(), -p.y()*p.x(), p.x()*p.x();
+    return ret;
+}
+
+Eigen::Matrix2d
+PolygonEditorWidget::inertiaMatrix() const
+{
+    QPointF bar = barycenter();
+
+    Eigen::Matrix2d M = Eigen::Matrix2d::Zero();
+
+    auto N = m_points.size();
+    for (int i = 0; i < N; i++) {
+        QPointF a = bar;
+        QPointF b = m_points[i];
+        QPointF c = m_points[(i+1)%N];
+        float qw = std::abs(signed_area(a,b,c))/3.0;
+        auto qps = quadrature_points(a,b,c);
+        for (const auto& qp : qps) {
+            auto p = qp - bar;
+            M += qw * (mass(p) /* - inertia(p)*/);
+        }
+    }
+
+    return M;
+}
+
 QPointF PolygonEditorWidget::worldToScreen(const QPointF& w) const
 {
     double s = m_scale;
@@ -88,6 +188,7 @@ void PolygonEditorWidget::paintEvent(QPaintEvent *)
     drawAxes(p);
     drawPolygon(p);
     drawPoints(p);
+    drawBoundingBox(p);
 }
 
 void PolygonEditorWidget::drawAxes(QPainter& p)
@@ -109,6 +210,42 @@ void PolygonEditorWidget::drawPolygon(QPainter& p)
 
     p.setPen(QPen(Qt::blue, 2));
     p.drawPolygon(poly);
+
+    if (m_points.size() > 3) {
+        QPen pen(Qt::lightGray, 1);
+        pen.setStyle(Qt::DashLine);
+        p.setPen(pen);
+        QPointF bar = worldToScreen(barycenter());
+        for (int i = 0; i < m_points.size(); i++) {
+            p.drawLine(bar, worldToScreen(m_points[i]));
+        }
+    }
+}
+
+void PolygonEditorWidget::drawBoundingBox(QPainter& p)
+{
+    if (m_points.size() < 3)
+        return;
+
+    auto [xmin, ymin] = worldToScreen(m_points[0]);
+    auto [xmax, ymax] = worldToScreen(m_points[0]);
+
+    QPolygonF poly;
+    for (const QPointF& w : m_points) {
+        QPointF ws = worldToScreen(w);
+        xmin = std::min(ws.x(), xmin);
+        ymin = std::min(ws.y(), ymin);
+        xmax = std::max(ws.x(), xmax);
+        ymax = std::max(ws.y(), ymax);
+    }
+
+    QRectF bbox(xmin, ymin, xmax-xmin, ymax - ymin);
+
+    QPen pen( QColor(70,70,40) , 1);
+    p.setBrush(Qt::NoBrush);
+    pen.setStyle(Qt::DashLine);
+    p.setPen(pen);
+    p.drawRect(bbox);
 }
 
 void PolygonEditorWidget::drawPoints(QPainter& p)
@@ -130,6 +267,34 @@ void PolygonEditorWidget::drawPoints(QPainter& p)
             p.setPen(Qt::NoPen);
         }
     }
+
+    p.setBrush(QColor(0, 150, 50));
+    QPointF bar = barycenter();
+    QPointF bars = worldToScreen(bar);
+    p.drawRect(bars.x()-4, bars.y()-4, 8, 8);
+
+    Eigen::Matrix2d mass = inertiaMatrix();
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> es(mass);
+
+    Eigen::Matrix2d eigvecs = es.eigenvectors();
+    Eigen::Vector2d eigvals = es.eigenvalues().cwiseSqrt();
+    eigvals /= eigvals.maxCoeff();
+
+    Eigen::Matrix2d d = (eigvecs*eigvals.asDiagonal());
+
+    QPointF v1{ bar.x() + d(0,0), bar.y() + d(1,0) };
+    QPointF v1s = worldToScreen(v1);
+
+    QPointF v2{ bar.x() + d(0,1), bar.y() + d(1,1) };
+    QPointF v2s = worldToScreen(v2);
+
+    QPen pen(QColor(0, 50, 150), 1);
+    pen.setStyle(Qt::DashLine);
+    p.setPen(pen);
+    //p.drawLine(bars, v1s);
+    //p.drawLine(bars, v2s);
+    drawArrow(p, bars, v1s);
+    drawArrow(p, bars, v2s);
 }
 
 void PolygonEditorWidget::resizeEvent(QResizeEvent *)
