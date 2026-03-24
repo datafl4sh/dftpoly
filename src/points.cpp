@@ -59,6 +59,24 @@ void PolygonEditorWidget::setShowLabels(bool enabled)
     update();
 }
 
+void PolygonEditorWidget::setShowInertiaAxes(bool enabled)
+{
+    m_showInertiaAxes = enabled;
+    update();
+}
+
+void PolygonEditorWidget::setShowBoundingBox(bool enabled)
+{
+    m_showBoundingBox = enabled;
+    update();
+}
+
+void PolygonEditorWidget::setShowInertiaTransformed(bool enabled)
+{
+    m_showInertiaTransformed = enabled;
+    update();
+}
+
 void PolygonEditorWidget::rotatePolygon(double angleRad)
 {
     double c = std::cos(angleRad);
@@ -189,6 +207,11 @@ void PolygonEditorWidget::paintEvent(QPaintEvent *)
     drawPolygon(p);
     drawPoints(p);
     drawBoundingBox(p);
+
+    QString zoomLevelText = QString("Zoom level: %1x")
+        .arg(m_zoom, 0, 'f', 2);
+    p.drawText(5, 15, zoomLevelText);
+
 }
 
 void PolygonEditorWidget::drawAxes(QPainter& p)
@@ -224,6 +247,9 @@ void PolygonEditorWidget::drawPolygon(QPainter& p)
 
 void PolygonEditorWidget::drawBoundingBox(QPainter& p)
 {
+    if (not m_showBoundingBox)
+        return;
+
     if (m_points.size() < 3)
         return;
 
@@ -281,6 +307,7 @@ void PolygonEditorWidget::drawPoints(QPainter& p)
     eigvals /= eigvals.maxCoeff();
 
     Eigen::Matrix2d d = (eigvecs*eigvals.asDiagonal());
+    Eigen::Matrix2d id = (eigvecs*eigvals.cwiseInverse().asDiagonal());
 
     QPointF v1{ bar.x() + d(0,0), bar.y() + d(1,0) };
     QPointF v1s = worldToScreen(v1);
@@ -293,8 +320,28 @@ void PolygonEditorWidget::drawPoints(QPainter& p)
     p.setPen(pen);
     //p.drawLine(bars, v1s);
     //p.drawLine(bars, v2s);
-    drawArrow(p, bars, v1s);
-    drawArrow(p, bars, v2s);
+
+    if (m_showInertiaAxes) {
+        drawArrow(p, bars, v1s);
+        drawArrow(p, bars, v2s);
+    }
+
+    if (m_showInertiaTransformed) {
+        QPolygonF poly;
+        for (int i = 0; i < m_points.size(); ++i) {
+            QPointF pt = m_points[i];
+            float rx = id(0,0)*pt.x() + id(1,0)*pt.y();
+            float ry = id(0,1)*pt.x() + id(1,1)*pt.y();
+            QPointF screen = worldToScreen( QPointF{rx, ry} );
+            poly << screen;
+            p.drawEllipse(screen, 3, 3);
+        }
+
+        p.setPen(QPen(Qt::yellow, 1));
+        p.setBrush(Qt::NoBrush);
+        p.drawPolygon(poly);
+    }
+
 }
 
 void PolygonEditorWidget::resizeEvent(QResizeEvent *)

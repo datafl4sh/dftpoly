@@ -6,10 +6,13 @@
 #include "points.h"
 #include "hist.h"
 
+#include "PolyExplorer.h"
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
+    /*
     QWidget window;
 
     QGridLayout* layout = new QGridLayout(&window);
@@ -52,6 +55,10 @@ int main(int argc, char *argv[])
 
     window.resize(600, 400);
     window.show();
+    */
+
+    PolyExplorer pe;
+    pe.show();
 
     return app.exec();
 }

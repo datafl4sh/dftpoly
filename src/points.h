@@ -5,6 +5,7 @@
 #include <QVector>
 #include <QPointF>
 #include <QDebug>
+#include <QLabel>
 
 #include <complex>
 
@@ -18,8 +19,6 @@ class PolygonEditorWidget : public QWidget
 
 public:
     PolygonEditorWidget(QWidget *parent = nullptr);
-
-    void setShowLabels(bool enabled);
 
     QPointF barycenter() const;
     Eigen::Matrix2d inertiaMatrix() const;
@@ -35,6 +34,11 @@ public slots:
     void processPolygon(const QVector<QPointF>& points);
     void setRealValues(const QVector<double>& vals);
     void setImagValues(const QVector<double>& vals);
+
+    void setShowLabels(bool enabled);
+    void setShowInertiaAxes(bool enabled);
+    void setShowBoundingBox(bool enabled);
+    void setShowInertiaTransformed(bool enabled);
 
 protected:
     QPointF worldToScreen(const QPointF& w) const;
@@ -62,7 +66,10 @@ private:
     double m_scale = 250.0;
     double m_zoom = 1.0;
     int m_radius = 6;
-    bool m_showLabels = true;
+    bool m_showLabels = false;
+    bool m_showInertiaAxes = false;
+    bool m_showBoundingBox = false;
+    bool m_showInertiaTransformed = false;
 
     int findPoint(const QPointF &screenPos);
 };
