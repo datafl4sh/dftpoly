@@ -1,6 +1,8 @@
 #pragma once
 #include <QComboBox>
 
+#include "diskpp/mesh/mesh.hpp"
+
 #include "hist.h"
 
 class StabfreeHHOParamsWidget : public QWidget

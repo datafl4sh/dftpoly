@@ -20,8 +20,11 @@ class PolygonEditorWidget : public QWidget
 public:
     PolygonEditorWidget(QWidget *parent = nullptr);
 
-    QPointF barycenter() const;
-    Eigen::Matrix2d inertiaMatrix() const;
+    float               area() const;
+    QPointF             barycenter() const;
+    QRectF              boundingBox() const;
+    Eigen::Matrix2d     structureTensor() const;
+    Eigen::Matrix2d     scaledPrincipalAxes() const;
 
 signals:
     void pointMoved(int index, QPointF worldPos);
@@ -51,6 +54,7 @@ protected:
     void drawPolygon(QPainter& p);
     void drawPoints(QPainter& p);
     void drawBoundingBox(QPainter& p);
+    void drawInertialQuantities(QPainter& p);
     void resizeEvent(QResizeEvent *) override;
 
     void mousePressEvent(QMouseEvent *event) override;

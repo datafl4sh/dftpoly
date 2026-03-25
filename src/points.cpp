@@ -120,6 +120,22 @@ QPointF PolygonEditorWidget::barycenter() const
     return ret;
 }
 
+QRectF
+PolygonEditorWidget::boundingBox() const
+{
+    auto [xmin, ymin] = m_points[0];
+    auto [xmax, ymax] = m_points[0];
+
+    for (const QPointF& p : m_points) {
+        xmin = std::min(p.x(), xmin);
+        ymin = std::min(p.y(), ymin);
+        xmax = std::max(p.x(), xmax);
+        ymax = std::max(p.y(), ymax);
+    }
+
+    return QRectF(xmin, ymin, xmax-xmin, ymax - ymin);
+}
+
 QVector<QPointF> quadrature_points(const QPointF& a,
     const QPointF& b, const QPointF& c)
 {
@@ -141,26 +157,12 @@ float signed_area(const QPointF& a,
     return 0.5*(va.x()*vb.y() - vb.x()*va.y());
 }
 
-Eigen::Matrix2d mass(const QPointF p)
-{
-    Eigen::Matrix2d ret;
-    ret << p.x()*p.x(), p.x()*p.y(), p.y()*p.x(), p.y()*p.y();
-    return ret;
-}
-
-Eigen::Matrix2d inertia(const QPointF p)
-{
-    Eigen::Matrix2d ret;
-    ret << p.y()*p.y(), -p.x()*p.y(), -p.y()*p.x(), p.x()*p.x();
-    return ret;
-}
-
 Eigen::Matrix2d
-PolygonEditorWidget::inertiaMatrix() const
+PolygonEditorWidget::structureTensor() const
 {
     QPointF bar = barycenter();
 
-    Eigen::Matrix2d M = Eigen::Matrix2d::Zero();
+    Eigen::Matrix2d S = Eigen::Matrix2d::Zero();
 
     auto N = m_points.size();
     for (int i = 0; i < N; i++) {
@@ -171,11 +173,28 @@ PolygonEditorWidget::inertiaMatrix() const
         auto qps = quadrature_points(a,b,c);
         for (const auto& qp : qps) {
             auto p = qp - bar;
-            M += qw * (mass(p) /* - inertia(p)*/);
+            Eigen::Matrix2d Sp; Sp <<
+                 qp.x()*qp.x(),  qp.x()*qp.y(),
+                 qp.y()*qp.x(),  qp.y()*qp.y();
+            S += qw * Sp;
         }
     }
 
-    return M;
+    return S;
+}
+
+Eigen::Matrix2d
+PolygonEditorWidget::scaledPrincipalAxes() const
+{
+    Eigen::Matrix2d S = structureTensor();
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> es(S);
+
+    Eigen::Matrix2d eigvecs = es.eigenvectors();
+    Eigen::Vector2d eigvals = es.eigenvalues().cwiseSqrt();
+    eigvals /= eigvals.maxCoeff();
+
+    Eigen::Matrix2d d = (eigvecs*eigvals.asDiagonal());
+    return d;
 }
 
 QPointF PolygonEditorWidget::worldToScreen(const QPointF& w) const
@@ -207,6 +226,7 @@ void PolygonEditorWidget::paintEvent(QPaintEvent *)
     drawPolygon(p);
     drawPoints(p);
     drawBoundingBox(p);
+    drawInertialQuantities(p);
 
     QString zoomLevelText = QString("Zoom level: %1x")
         .arg(m_zoom, 0, 'f', 2);
@@ -253,25 +273,65 @@ void PolygonEditorWidget::drawBoundingBox(QPainter& p)
     if (m_points.size() < 3)
         return;
 
-    auto [xmin, ymin] = worldToScreen(m_points[0]);
-    auto [xmax, ymax] = worldToScreen(m_points[0]);
+    QRectF bbox = boundingBox();
+    QPointF topLeft_s = worldToScreen(bbox.topLeft());
+    QPointF bottomRight_s = worldToScreen(bbox.bottomRight());
 
-    QPolygonF poly;
-    for (const QPointF& w : m_points) {
-        QPointF ws = worldToScreen(w);
-        xmin = std::min(ws.x(), xmin);
-        ymin = std::min(ws.y(), ymin);
-        xmax = std::max(ws.x(), xmax);
-        ymax = std::max(ws.y(), ymax);
-    }
-
-    QRectF bbox(xmin, ymin, xmax-xmin, ymax - ymin);
+    QRectF bbox_s = QRectF(topLeft_s, bottomRight_s);
 
     QPen pen( QColor(70,70,40) , 1);
     p.setBrush(Qt::NoBrush);
     pen.setStyle(Qt::DashLine);
     p.setPen(pen);
-    p.drawRect(bbox);
+    p.drawRect(bbox_s);
+}
+
+void
+PolygonEditorWidget::drawInertialQuantities(QPainter& p)
+{
+    Eigen::Matrix2d d = scaledPrincipalAxes();
+    
+
+    QPointF bar = barycenter();
+    QPointF bars = worldToScreen(bar);
+
+    QPointF v1{ bar.x() + d(0,0), bar.y() + d(1,0) };
+    QPointF v1s = worldToScreen(v1);
+
+    QPointF v2{ bar.x() + d(0,1), bar.y() + d(1,1) };
+    QPointF v2s = worldToScreen(v2);
+
+    QPen pen(QColor(0, 50, 150), 1);
+    pen.setStyle(Qt::DashLine);
+    p.setPen(pen);
+
+
+    if (m_showInertiaAxes) {
+        drawArrow(p, bars, v1s);
+        drawArrow(p, bars, v2s);
+    }
+
+    if (m_showInertiaTransformed) {
+        Eigen::Matrix2d id = d.inverse();
+        QPolygonF poly;
+        QVector<QPointF> tr_points;
+        for (int i = 0; i < m_points.size(); ++i) {
+            QPointF pt = m_points[i];
+            float rx = id(0,0)*pt.x() + id(0,1)*pt.y();
+            float ry = id(1,0)*pt.x() + id(1,1)*pt.y();
+            QPointF screen = worldToScreen( QPointF{rx, ry} );
+            tr_points.append( screen );
+            poly << screen;
+        }
+
+        p.setPen(QPen(Qt::yellow, 1));
+        p.setBrush(Qt::NoBrush);
+        p.drawPolygon(poly);
+    
+        for (auto& pt : tr_points) {
+            p.drawEllipse(pt, 3, 3);
+        }
+    }
 }
 
 void PolygonEditorWidget::drawPoints(QPainter& p)
@@ -299,48 +359,7 @@ void PolygonEditorWidget::drawPoints(QPainter& p)
     QPointF bars = worldToScreen(bar);
     p.drawRect(bars.x()-4, bars.y()-4, 8, 8);
 
-    Eigen::Matrix2d mass = inertiaMatrix();
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> es(mass);
 
-    Eigen::Matrix2d eigvecs = es.eigenvectors();
-    Eigen::Vector2d eigvals = es.eigenvalues().cwiseSqrt();
-    eigvals /= eigvals.maxCoeff();
-
-    Eigen::Matrix2d d = (eigvecs*eigvals.asDiagonal());
-    Eigen::Matrix2d id = (eigvecs*eigvals.cwiseInverse().asDiagonal());
-
-    QPointF v1{ bar.x() + d(0,0), bar.y() + d(1,0) };
-    QPointF v1s = worldToScreen(v1);
-
-    QPointF v2{ bar.x() + d(0,1), bar.y() + d(1,1) };
-    QPointF v2s = worldToScreen(v2);
-
-    QPen pen(QColor(0, 50, 150), 1);
-    pen.setStyle(Qt::DashLine);
-    p.setPen(pen);
-    //p.drawLine(bars, v1s);
-    //p.drawLine(bars, v2s);
-
-    if (m_showInertiaAxes) {
-        drawArrow(p, bars, v1s);
-        drawArrow(p, bars, v2s);
-    }
-
-    if (m_showInertiaTransformed) {
-        QPolygonF poly;
-        for (int i = 0; i < m_points.size(); ++i) {
-            QPointF pt = m_points[i];
-            float rx = id(0,0)*pt.x() + id(1,0)*pt.y();
-            float ry = id(0,1)*pt.x() + id(1,1)*pt.y();
-            QPointF screen = worldToScreen( QPointF{rx, ry} );
-            poly << screen;
-            p.drawEllipse(screen, 3, 3);
-        }
-
-        p.setPen(QPen(Qt::yellow, 1));
-        p.setBrush(Qt::NoBrush);
-        p.drawPolygon(poly);
-    }
 
 }
 
