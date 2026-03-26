@@ -47,6 +47,10 @@ PolyExplorer::PolyExplorer()
     QObject::connect(
         polyDFTWidget, SIGNAL(imagValuesChanged(const QVector<double>&)),
         polygonEditorWidget, SLOT(setImagValues(const QVector<double>&)) );
+
+    QObject::connect(
+        polygonEditorWidget, SIGNAL(polygonChanged(const QVector<QPointF>&)),
+        stabfreeWidget, SLOT(polygonChanged(const QVector<QPointF>&)) );
 }
 
 void

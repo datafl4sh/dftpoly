@@ -22,6 +22,7 @@ public:
 
     float               area() const;
     QPointF             barycenter() const;
+    QPointF             centroid() const;
     QRectF              boundingBox() const;
     Eigen::Matrix2d     structureTensor() const;
     Eigen::Matrix2d     scaledPrincipalAxes() const;

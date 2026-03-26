@@ -10,6 +10,14 @@
 #include "points.h"
 #include "dft.h"
 
+float signed_area(const QPointF& a,
+    const QPointF& b, const QPointF& c)
+{
+    QPointF va = b-a;
+    QPointF vb = c-a;
+    return 0.5*(va.x()*vb.y() - vb.x()*va.y());
+}
+
 
 void drawArrow(QPainter &painter, QPointF start, QPointF end)
 {
@@ -120,6 +128,22 @@ QPointF PolygonEditorWidget::barycenter() const
     return ret;
 }
 
+QPointF PolygonEditorWidget::centroid() const
+{
+    QPointF ret{0.0, 0.0};
+    auto bar = barycenter();
+    auto pa = 0.0;
+    for (int i = 1; i < m_points.size(); i++) {
+        auto p0 = m_points[i-1];
+        auto p1 = m_points[i];
+        double ta = signed_area(bar, p0, p1);
+        pa += ta;
+        ret += ta*(p0+p1+bar)/3.0;
+    }
+    ret = ret/pa;
+    return ret;
+}
+
 QRectF
 PolygonEditorWidget::boundingBox() const
 {
@@ -149,13 +173,6 @@ QVector<QPointF> quadrature_points(const QPointF& a,
     return ret;
 }
 
-float signed_area(const QPointF& a,
-    const QPointF& b, const QPointF& c)
-{
-    QPointF va = b-a;
-    QPointF vb = c-a;
-    return 0.5*(va.x()*vb.y() - vb.x()*va.y());
-}
 
 Eigen::Matrix2d
 PolygonEditorWidget::structureTensor() const
@@ -258,9 +275,9 @@ void PolygonEditorWidget::drawPolygon(QPainter& p)
         QPen pen(Qt::lightGray, 1);
         pen.setStyle(Qt::DashLine);
         p.setPen(pen);
-        QPointF bar = worldToScreen(barycenter());
+        QPointF cog = worldToScreen(centroid());
         for (int i = 0; i < m_points.size(); i++) {
-            p.drawLine(bar, worldToScreen(m_points[i]));
+            p.drawLine(cog, worldToScreen(m_points[i]));
         }
     }
 }
@@ -355,9 +372,9 @@ void PolygonEditorWidget::drawPoints(QPainter& p)
     }
 
     p.setBrush(QColor(0, 150, 50));
-    QPointF bar = barycenter();
-    QPointF bars = worldToScreen(bar);
-    p.drawRect(bars.x()-4, bars.y()-4, 8, 8);
+    QPointF cog = centroid();
+    QPointF cogs = worldToScreen(cog);
+    p.drawRect(cogs.x()-4, cogs.y()-4, 8, 8);
 
 
 
@@ -530,6 +547,7 @@ void PolygonEditorWidget::setRealValues(const QVector<double>& points)
         m_points.append( {std::real(idftout[i]), std::imag(idftout[i])} );
     }
 
+    polygonChanged(m_points);
     update();
 }
 
@@ -554,5 +572,6 @@ void PolygonEditorWidget::setImagValues(const QVector<double>& points)
         m_points.append( {std::real(idftout[i]), std::imag(idftout[i])} );
     }
 
+    polygonChanged(m_points);
     update();
 }
