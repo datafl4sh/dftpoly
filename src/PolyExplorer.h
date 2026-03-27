@@ -7,7 +7,9 @@
 
 #include "points.h"
 #include "PolyDFTWidget.h"
+
 #include "StabfreeHHOParameters.h"
+#include "HHOModel.h"
 
 class PolyExplorer : public QMainWindow {
 public:
@@ -23,5 +25,7 @@ private:
 
     PolygonEditorWidget     *polygonEditorWidget;
     PolyDFTWidget           *polyDFTWidget;
+
+    HHOModel                *hhoModel;
     StabfreeHHOParamsWidget *stabfreeWidget;
 };

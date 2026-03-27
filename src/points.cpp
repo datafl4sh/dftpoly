@@ -55,9 +55,10 @@ PolygonEditorWidget::PolygonEditorWidget(QWidget *parent)
 {
     setMinimumSize(500, 500);
     setFocusPolicy(Qt::StrongFocus);
+    setMouseTracking(true);
+
     double sX = width() / 2.0;
     double sY = height() / 2.0;
-
     m_scale = std::min(sX, sY);
 }
 
@@ -216,39 +217,27 @@ PolygonEditorWidget::scaledPrincipalAxes() const
 
 QPointF PolygonEditorWidget::worldToScreen(const QPointF& w) const
 {
-    double s = m_scale;
-
-    double x = width()  * 0.5 + w.x() * s;
-    double y = height() * 0.5 - w.y() * s;
+    double x = width()  * 0.5 + (w.x() - m_camera.x()) * m_scale;
+    double y = height() * 0.5 - (w.y() - m_camera.y()) * m_scale;
 
     return QPointF(x, y);
 }
 
 QPointF PolygonEditorWidget::screenToWorld(const QPointF& s) const
 {
-    double scale = m_scale;
-
-    double x = (s.x() - width()  * 0.5) / scale;
-    double y = (height() * 0.5 - s.y()) / scale;
+    double x = (s.x() - width()  * 0.5) / m_scale + m_camera.x();
+    double y = (height() * 0.5 - s.y()) / m_scale + m_camera.y();
 
     return QPointF(x, y);
 }
 
-void PolygonEditorWidget::paintEvent(QPaintEvent *)
+void PolygonEditorWidget::zoomAt(const QPointF& mousePos, double zoomFactor)
 {
-    QPainter p(this);
-    p.setRenderHint(QPainter::Antialiasing);
-
-    drawAxes(p);
-    drawPolygon(p);
-    drawPoints(p);
-    drawBoundingBox(p);
-    drawInertialQuantities(p);
-
-    QString zoomLevelText = QString("Zoom level: %1x")
-        .arg(m_zoom, 0, 'f', 2);
-    p.drawText(5, 15, zoomLevelText);
-
+    QPointF before = screenToWorld(mousePos);
+    m_scale *= zoomFactor;
+    QPointF after = screenToWorld(mousePos);
+    m_camera += (before - after);
+    update();
 }
 
 void PolygonEditorWidget::drawAxes(QPainter& p)
@@ -279,6 +268,50 @@ void PolygonEditorWidget::drawPolygon(QPainter& p)
         for (int i = 0; i < m_points.size(); i++) {
             p.drawLine(cog, worldToScreen(m_points[i]));
         }
+    }
+}
+
+void PolygonEditorWidget::drawPoints(QPainter& p)
+{
+    p.setPen(Qt::NoPen);
+    p.setBrush(Qt::red);
+
+    for (int i = 0; i < m_points.size(); ++i) {
+        QPointF screen = worldToScreen(m_points[i]);
+        p.drawEllipse(screen, m_radius, m_radius);
+
+        if (m_showLabels) {
+            QString text = QString("(%1, %2)")
+                    .arg(m_points[i].x(), 0, 'f', 2)
+                    .arg(m_points[i].y(), 0, 'f', 2);
+
+            p.setPen(Qt::black);
+            p.drawText(screen + QPointF(8, -8), text);
+            p.setPen(Qt::NoPen);
+        }
+    }
+
+    /* Centroid of the polygon */
+    p.setBrush(QColor(0, 150, 50));
+    QPointF cog = centroid();
+    QPointF cogs = worldToScreen(cog);
+    p.drawRect(cogs.x()-4, cogs.y()-4, 8, 8);
+    p.setBrush(Qt::NoBrush);
+
+    /* Barycenter of the vertices */
+    p.setBrush(QColor(0, 120, 20));
+    QPointF bar = barycenter();
+    QPointF bars = worldToScreen(bar);
+    p.drawRect(bars.x()-2, bars.y()-2, 4, 4);
+    p.setBrush(Qt::NoBrush);
+    
+    /* Gradient radius */
+    int point = findPoint(m_mouseCurrentlyAt);
+    if (point >= 0) {
+        QPointF screen = worldToScreen(m_points[point]);
+        p.setPen(Qt::black);
+        p.drawEllipse(screen, m_gradRadius, m_gradRadius);
+        p.setPen(Qt::NoPen);
     }
 }
 
@@ -344,7 +377,7 @@ PolygonEditorWidget::drawInertialQuantities(QPainter& p)
             poly << screen;
         }
 
-        p.setPen(QPen(QColor(200,200,50), 1));
+        p.setPen(QPen(QColor(180,220,50), 1));
         p.setBrush(Qt::NoBrush);
         p.drawPolygon(poly);
     
@@ -354,37 +387,31 @@ PolygonEditorWidget::drawInertialQuantities(QPainter& p)
     }
 }
 
-void PolygonEditorWidget::drawPoints(QPainter& p)
+void PolygonEditorWidget::paintEvent(QPaintEvent *)
 {
-    p.setPen(Qt::NoPen);
-    p.setBrush(Qt::red);
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing);
 
-    for (int i = 0; i < m_points.size(); ++i) {
-        QPointF screen = worldToScreen(m_points[i]);
-        p.drawEllipse(screen, m_radius, m_radius);
+    p.fillRect(rect(), QColor(220, 220, 220));
 
-        if (m_showLabels) {
-            QString text = QString("(%1, %2)")
-                    .arg(m_points[i].x(), 0, 'f', 2)
-                    .arg(m_points[i].y(), 0, 'f', 2);
+    drawAxes(p);
+    drawPolygon(p);
+    drawPoints(p);
+    drawBoundingBox(p);
+    drawInertialQuantities(p);
 
-            p.setPen(Qt::black);
-            p.drawText(screen + QPointF(8, -8), text);
-            p.setPen(Qt::NoPen);
-        }
-    }
+    QString zoomLevelText = QString("Zoom level: %1x")
+        .arg(m_zoom, 0, 'f', 2);
+    p.drawText(5, 15, zoomLevelText);
 
-    p.setBrush(QColor(0, 150, 50));
-    QPointF cog = centroid();
-    QPointF cogs = worldToScreen(cog);
-    p.drawRect(cogs.x()-4, cogs.y()-4, 8, 8);
-
-    p.setBrush(QColor(0, 120, 20));
-    QPointF bar = barycenter();
-    QPointF bars = worldToScreen(bar);
-    p.drawRect(bars.x()-2, bars.y()-2, 4, 4);
+    QPointF mousepos = screenToWorld(m_mouseCurrentlyAt);
+    QString wposText = QString("Position: (%1, %2)")
+        .arg(mousepos.x(), 0, 'f', 5)
+        .arg(mousepos.y(), 0, 'f', 5);
+    p.drawText(5, 30, wposText);
 
 }
+
 
 void PolygonEditorWidget::resizeEvent(QResizeEvent *)
 {
@@ -396,16 +423,14 @@ void PolygonEditorWidget::resizeEvent(QResizeEvent *)
 
 void PolygonEditorWidget::mousePressEvent(QMouseEvent *event)
 {
-    QPointF worldPos = screenToWorld(event->pos());
     int index = findPoint(event->pos());
 
     if (event->button() == Qt::LeftButton) {
         if (index >= 0) {
             m_dragIndex = index;
         } else {
-            m_points.append(worldPos);
-            emit polygonChanged(m_points);
-            update();
+            m_panning = true;
+            m_mouseDownAt = event->pos();
         }
     }
     else if (event->button() == Qt::RightButton && index >= 0) {
@@ -417,20 +442,35 @@ void PolygonEditorWidget::mousePressEvent(QMouseEvent *event)
 
 void PolygonEditorWidget::mouseMoveEvent(QMouseEvent *event)
 {
+    QPointF mouseAt = screenToWorld(event->pos());
+
     if (m_dragIndex >= 0) {
-        QPointF worldPos = screenToWorld(event->pos());
-        m_points[m_dragIndex] = worldPos;
-
-        emit pointMoved(m_dragIndex, worldPos);
+        m_points[m_dragIndex] = mouseAt;
+        emit pointMoved(m_dragIndex, mouseAt);
         emit polygonChanged(m_points);
-
-        update();
     }
+
+    if (m_panning)
+    {
+        m_camera -= (mouseAt - screenToWorld(m_mouseCurrentlyAt));
+    }
+
+    m_mouseCurrentlyAt = event->pos();
+    update();
 }
 
-void PolygonEditorWidget::mouseReleaseEvent(QMouseEvent *)
+void PolygonEditorWidget::mouseReleaseEvent(QMouseEvent *event)
 {
     m_dragIndex = -1;
+    
+    QPoint mouseUpAt = event->pos();
+    if (mouseUpAt == m_mouseDownAt){
+        QPointF worldPos = screenToWorld(event->pos());
+        m_points.append(worldPos);
+        emit polygonChanged(m_points);
+    }
+    m_panning = false;
+    update();
 }
 
 void PolygonEditorWidget::wheelEvent(QWheelEvent *event)
@@ -438,6 +478,18 @@ void PolygonEditorWidget::wheelEvent(QWheelEvent *event)
     const double zoomFactor = 1.15;
     const double rotationStep = 5.0 * M_PI / 180.0;
     const double scaleFactor = 1.15;
+
+    QPointF screenEventPos = event->position();
+    int point = findPoint( screenEventPos );
+    if (point >= 0) {
+        if (event->angleDelta().y() > 0) {
+            m_gradRadius = std::min(30, m_gradRadius+1);
+        } else {
+            m_gradRadius = std::max(0, m_gradRadius-1);
+        }
+        update();
+        return;
+    }
 
     if (event->modifiers() & Qt::ShiftModifier) {
         if (event->angleDelta().y() > 0)
@@ -452,11 +504,11 @@ void PolygonEditorWidget::wheelEvent(QWheelEvent *event)
     }
     else {
         if (event->angleDelta().y() > 0) {
-            m_scale *= zoomFactor;
             m_zoom *= zoomFactor;
+            zoomAt(event->position(), zoomFactor);
         } else {
-            m_scale /= zoomFactor;
             m_zoom /= zoomFactor;
+            zoomAt(event->position(), 1.0/zoomFactor);
         }
         emit zoomChanged(m_zoom);
     }

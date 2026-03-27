@@ -23,7 +23,9 @@ PolyExplorer::PolyExplorer()
     
 
     makePolyDFTWidget();
+
     makeStabfreeHHOWidget();
+    hhoModel = new HHOModel();
 
     QObject::connect(
         polygonEditorWidget, SIGNAL(polygonChanged(const QVector<QPointF>&)),
@@ -50,7 +52,11 @@ PolyExplorer::PolyExplorer()
 
     QObject::connect(
         polygonEditorWidget, SIGNAL(polygonChanged(const QVector<QPointF>&)),
-        stabfreeWidget, SLOT(polygonChanged(const QVector<QPointF>&)) );
+        hhoModel, SLOT(setPolygon(const QVector<QPointF>&)) );
+
+    QObject::connect(
+        hhoModel, SIGNAL(minEigenvalueChanged(double)),
+        stabfreeWidget, SLOT(setEigenvalue(double)) );
 }
 
 void

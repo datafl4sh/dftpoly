@@ -4,7 +4,7 @@ project(polyfft)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(Diskpp_DIR "/home/matteo/workingcopies/diskpp2/libdiskpp/build")
+set(Diskpp_DIR "/home/matteo/workingcopies/diskpp/libdiskpp/build")
 find_package(Diskpp)
 
 message(STATUS "MP: ${CMAKE_MODULE_PATH}")
@@ -18,6 +18,7 @@ add_executable(polyfft
     src/points.cpp src/hist.cpp src/dft.cpp
     src/PolyExplorer.cpp src/PolyDFTWidget.cpp
     src/StabfreeHHOParameters.cpp
+    src/HHOModel.cpp
 )
 
 target_link_libraries(polyfft Qt6::Widgets Eigen3::Eigen diskpp::diskpp)

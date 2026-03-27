@@ -3,12 +3,9 @@
 #include <QGridLayout>
 #include <QString>
 
-#include "diskpp/loaders/loader.hpp"
-#include "diskpp/loaders/loader_utils.hpp"
-#include "diskpp/mesh/meshgen.hpp"
 
 
-
+#include "HHOModel.h"
 #include "StabfreeHHOParameters.h"
 
 StabfreeHHOParamsWidget::StabfreeHHOParamsWidget(QWidget *parent)
@@ -64,57 +61,31 @@ StabfreeHHOParamsWidget::StabfreeHHOParamsWidget(QWidget *parent)
 void
 StabfreeHHOParamsWidget::hhoTypeChanged(int index)
 {
-    if (index == 0) {
-        hhocfg.use_stabfree = false;
-    } else {
-        hhocfg.use_stabfree = true;
-    }
-
-    recompute();
 }
 
 void
 StabfreeHHOParamsWidget::hhoOrderChanged(int index)
 {
-    hhocfg.degree = index;
-    recompute();
 }
 
 void
 StabfreeHHOParamsWidget::hhoVariantChanged(int index)
 {
     switch (index) {
-        case 0: hhocfg.variant = priv::hho_variant::mixed_order_low; break;
-        case 1: hhocfg.variant = priv::hho_variant::equal_order; break;
-        case 2: hhocfg.variant = priv::hho_variant::mixed_order_high; break;
-        default: hhocfg.variant = priv::hho_variant::equal_order; break;
+
     }
-    recompute();
 }
 
 void
-StabfreeHHOParamsWidget::recompute(void)
+StabfreeHHOParamsWidget::setEigenvalue(double eig)
 {
-    if (polypts.size() < 3) {
-        smallestEigLabel->setText("--");
-        return;
-    }
-
-    mesh_type msh;
-    disk::make_single_elem_mesh_from_points(msh, polypts);
-
-    double eig = test(msh, hhocfg);
     QString text = QString("%1").arg(eig, 0, 'f', 15);
     smallestEigLabel->setText(text);
 }
 
-void
-StabfreeHHOParamsWidget::polygonChanged(const QVector<QPointF>& pts)
-{
-    polypts.clear();
-    for (auto& p : pts) {
-        polypts.push_back( {p.x(), p.y()} );
-    }
+//void
+//StabfreeHHOParamsWidget::recompute(void)
+//{
+//    
+//}
 
-    recompute();
-}

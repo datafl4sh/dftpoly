@@ -47,6 +47,7 @@ public slots:
 protected:
     QPointF worldToScreen(const QPointF& w) const;
     QPointF screenToWorld(const QPointF& s) const;
+    void zoomAt(const QPointF&, double);
 
     void paintEvent(QPaintEvent *) override;
     void rotatePolygon(double);
@@ -66,11 +67,20 @@ protected:
 
 private:
     QVector<QPointF> m_points;
+
     std::vector<std::complex<double>> m_freqs;
     int m_dragIndex = -1;
+
+    QPointF m_camera;
     double m_scale = 250.0;
     double m_zoom = 1.0;
+    int m_gradRadius = 10;
+
+    bool m_panning = false;
+    QPoint m_mouseCurrentlyAt;
+    QPoint m_mouseDownAt;
     int m_radius = 6;
+    
     bool m_showLabels = false;
     bool m_showInertiaAxes = false;
     bool m_showBoundingBox = false;
