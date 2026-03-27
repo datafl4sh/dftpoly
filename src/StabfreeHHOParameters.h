@@ -2,6 +2,7 @@
 #include <QComboBox>
 #include <QLabel>
 
+#include "HHOModel.h"
 #include "hist.h"
 
 class StabfreeHHOParamsWidget : public QWidget
@@ -15,10 +16,14 @@ public slots:
     void setEigenvalue(double);
 
 private slots:
-    void hhoTypeChanged(int);
-    void hhoOrderChanged(int);
-    void hhoVariantChanged(int);
+    void priv_hhoTypeChanged(int);
+    void priv_hhoOrderChanged(int);
+    void priv_hhoVariantChanged(int);
 
+signals:
+    void hhoTypeChanged(bool);
+    void hhoVariantChanged(hho_variant);
+    void hhoOrderChanged(size_t);
 
 private:
     QComboBox   *hhoTypeCombo;

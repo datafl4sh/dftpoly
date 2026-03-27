@@ -33,11 +33,13 @@ signals:
     void realValuesChanged(const QVector<double>& vals);
     void imagValuesChanged(const QVector<double>& vals);
     void zoomChanged(double zoom);
+    void gradientRadiusChanged(float);
 
 public slots:
     void processPolygon(const QVector<QPointF>& points);
     void setRealValues(const QVector<double>& vals);
     void setImagValues(const QVector<double>& vals);
+    void setGradientsAtPoints(const std::vector<double>& grads);
 
     void setShowLabels(bool enabled);
     void setShowInertiaAxes(bool enabled);
@@ -55,6 +57,7 @@ protected:
     void drawAxes(QPainter& p);
     void drawPolygon(QPainter& p);
     void drawPoints(QPainter& p);
+    void drawGradCircle(QPainter& p);
     void drawBoundingBox(QPainter& p);
     void drawInertialQuantities(QPainter& p);
     void resizeEvent(QResizeEvent *) override;
@@ -87,4 +90,6 @@ private:
     bool m_showInertiaTransformed = false;
 
     int findPoint(const QPointF &screenPos);
+
+    std::vector<double>     m_gradientsAtPoints;
 };

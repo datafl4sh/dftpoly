@@ -126,6 +126,7 @@ HHOModel::setVariant(hho_variant variant)
 void
 HHOModel::setGradientDelta(float delta)
 {
+    gradientDelta = delta;
     computeGradients(delta);
 }
 
@@ -139,6 +140,8 @@ HHOModel::recompute()
     mesh_type msh;
     disk::make_single_elem_mesh_from_points(msh, polypts);
 
+    computeGradients(gradientDelta);
+
     double eig = test(msh, hhocfg);
     emit minEigenvalueChanged(eig);
 }
@@ -146,7 +149,7 @@ HHOModel::recompute()
 void
 HHOModel::computeGradients(float delta)
 {
-    static const size_t num_grads = 8;
+    static const size_t num_grads = NUM_GRADIENT_DIRECTIONS;
 
     if (polypts.size() < 3) {
         return;

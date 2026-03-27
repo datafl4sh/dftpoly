@@ -53,10 +53,30 @@ PolyExplorer::PolyExplorer()
     QObject::connect(
         polygonEditorWidget, SIGNAL(polygonChanged(const QVector<QPointF>&)),
         hhoModel, SLOT(setPolygon(const QVector<QPointF>&)) );
+    
+    QObject::connect(
+        polygonEditorWidget, SIGNAL(gradientRadiusChanged(float)),
+        hhoModel, SLOT(setGradientDelta(float)) );
+
+    QObject::connect(
+        hhoModel, SIGNAL(gradientsChanged(const std::vector<double>&)),
+        polygonEditorWidget, SLOT(setGradientsAtPoints(const std::vector<double>&)) );
 
     QObject::connect(
         hhoModel, SIGNAL(minEigenvalueChanged(double)),
         stabfreeWidget, SLOT(setEigenvalue(double)) );
+
+    QObject::connect(
+        stabfreeWidget, SIGNAL(hhoTypeChanged(bool)),
+        hhoModel, SLOT(useStabfree(bool)) );
+
+    QObject::connect(
+        stabfreeWidget, SIGNAL(hhoOrderChanged(size_t)),
+        hhoModel, SLOT(setDegree(size_t)) );
+
+    QObject::connect(
+        stabfreeWidget, SIGNAL(hhoVariantChanged(hho_variant)),
+        hhoModel, SLOT(setVariant(hho_variant)) );
 }
 
 void

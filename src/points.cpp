@@ -7,6 +7,8 @@
 #include <QPointF>
 #include <QDebug>
 
+#include "HHOModel.h"
+
 #include "points.h"
 #include "dft.h"
 
@@ -253,13 +255,17 @@ void PolygonEditorWidget::drawPolygon(QPainter& p)
     if (m_points.size() < 2)
         return;
 
+    /* The vertices of the polygon to screen coordinates,
+     * form the polygon and draw it */
     QPolygonF poly;
-    for (const QPointF& w : m_points)
+    for (const QPointF& w : m_points) {
         poly << worldToScreen(w);
-
+    }
     p.setPen(QPen(Qt::blue, 2));
     p.drawPolygon(poly);
 
+    /* Now find the COG and draw all the lines connecting
+     * the COG with the polygon vertices */
     if (m_points.size() > 3) {
         QPen pen(Qt::lightGray, 1);
         pen.setStyle(Qt::DashLine);
@@ -269,13 +275,15 @@ void PolygonEditorWidget::drawPolygon(QPainter& p)
             p.drawLine(cog, worldToScreen(m_points[i]));
         }
     }
+    p.setPen(Qt::NoPen);
 }
 
 void PolygonEditorWidget::drawPoints(QPainter& p)
 {
     p.setPen(Qt::NoPen);
     p.setBrush(Qt::red);
-
+    /* Draw all the vertices of the polygon and if
+     * requested draw the text with their position */
     for (int i = 0; i < m_points.size(); ++i) {
         QPointF screen = worldToScreen(m_points[i]);
         p.drawEllipse(screen, m_radius, m_radius);
@@ -304,15 +312,55 @@ void PolygonEditorWidget::drawPoints(QPainter& p)
     QPointF bars = worldToScreen(bar);
     p.drawRect(bars.x()-2, bars.y()-2, 4, 4);
     p.setBrush(Qt::NoBrush);
-    
-    /* Gradient radius */
+}
+
+void PolygonEditorWidget::drawGradCircle(QPainter& p)
+{
+    /* Gradient radius and max descent direction */
     int point = findPoint(m_mouseCurrentlyAt);
-    if (point >= 0) {
-        QPointF screen = worldToScreen(m_points[point]);
-        p.setPen(Qt::black);
-        p.drawEllipse(screen, m_gradRadius, m_gradRadius);
-        p.setPen(Qt::NoPen);
+    if (point < 0) {
+        return;
     }
+
+    /* Draw the circle around the polygon point to
+     * show the gradient computation radius */
+    QPointF screenpt = worldToScreen(m_points[point]);
+    p.setPen(QColor(110,130,50));
+    p.drawEllipse(screenpt, m_gradRadius, m_gradRadius);
+    /* and draw the text with the actual numeric radius */
+    QString gradRadiusText = QString("%1")
+        .arg(m_gradRadius/m_scale, 0, 'f', 5);
+    p.drawText(screenpt.x()+15, screenpt.y()+15, gradRadiusText);
+    p.setPen(Qt::NoPen);
+
+    /* Make sure we have the gradient data */
+    if (m_gradientsAtPoints.size() != 8*m_points.size()) {
+        return;
+    }
+
+    /* Find the position of the most negative gradient */
+    int first = point * NUM_GRADIENT_DIRECTIONS;
+    int last = first + NUM_GRADIENT_DIRECTIONS;
+    double min = m_gradientsAtPoints[first];
+    int minpos = 0;
+    for (int i = first; i < last; i++) {
+        if (m_gradientsAtPoints[i] < min) {
+            min = m_gradientsAtPoints[i];
+            minpos = i - first;
+        }
+    }
+
+    /* Draw the arrow pointing in the direction of
+     * the most negative gradient */
+    double c = std::cos(2*M_PI*minpos/NUM_GRADIENT_DIRECTIONS);
+    double s = -std::sin(2*M_PI*minpos/NUM_GRADIENT_DIRECTIONS);
+    QPointF dir{c, s};
+    p.setPen(QColor(110,130,50));
+    QPointF ofs{40,-15};
+    QPointF arrowStart = ofs+screenpt-10*dir;
+    QPointF arrowEnd = ofs+screenpt+10*dir;
+    drawArrow(p, arrowStart, arrowEnd);
+    p.setPen(Qt::NoPen);
 }
 
 void PolygonEditorWidget::drawBoundingBox(QPainter& p)
@@ -377,7 +425,7 @@ PolygonEditorWidget::drawInertialQuantities(QPainter& p)
             poly << screen;
         }
 
-        p.setPen(QPen(QColor(180,220,50), 1));
+        p.setPen(QPen(QColor(160,200,30), 2));
         p.setBrush(Qt::NoBrush);
         p.drawPolygon(poly);
     
@@ -385,6 +433,7 @@ PolygonEditorWidget::drawInertialQuantities(QPainter& p)
             p.drawEllipse(pt, 3, 3);
         }
     }
+    p.setBrush(Qt::NoBrush);
 }
 
 void PolygonEditorWidget::paintEvent(QPaintEvent *)
@@ -395,10 +444,11 @@ void PolygonEditorWidget::paintEvent(QPaintEvent *)
     p.fillRect(rect(), QColor(220, 220, 220));
 
     drawAxes(p);
-    drawPolygon(p);
-    drawPoints(p);
     drawBoundingBox(p);
     drawInertialQuantities(p);
+    drawPolygon(p);
+    drawPoints(p);
+    drawGradCircle(p);
 
     QString zoomLevelText = QString("Zoom level: %1x")
         .arg(m_zoom, 0, 'f', 2);
@@ -427,13 +477,16 @@ void PolygonEditorWidget::mousePressEvent(QMouseEvent *event)
 
     if (event->button() == Qt::LeftButton) {
         if (index >= 0) {
+            /* Mouse went down on a point, we want to move it */
             m_dragIndex = index;
         } else {
+            /* Mouse went down outside a point, pan the view */
             m_panning = true;
             m_mouseDownAt = event->pos();
         }
     }
     else if (event->button() == Qt::RightButton && index >= 0) {
+        /* Right-click on a point, remove it */
         m_points.remove(index);
         emit polygonChanged(m_points);
         update();
@@ -450,8 +503,7 @@ void PolygonEditorWidget::mouseMoveEvent(QMouseEvent *event)
         emit polygonChanged(m_points);
     }
 
-    if (m_panning)
-    {
+    if (m_panning) {
         m_camera -= (mouseAt - screenToWorld(m_mouseCurrentlyAt));
     }
 
@@ -480,28 +532,37 @@ void PolygonEditorWidget::wheelEvent(QWheelEvent *event)
     const double scaleFactor = 1.15;
 
     QPointF screenEventPos = event->position();
-    int point = findPoint( screenEventPos );
-    if (point >= 0) {
+
+    /* Check if we are above a point, if yes just modify
+     * the gradient computation radius and return */
+    int point = findPoint(screenEventPos);
+    if (point >= 0 and point < m_points.size()) {
         if (event->angleDelta().y() > 0) {
             m_gradRadius = std::min(30, m_gradRadius+1);
         } else {
-            m_gradRadius = std::max(0, m_gradRadius-1);
+            m_gradRadius = std::max(1, m_gradRadius-1);
         }
+        emit gradientRadiusChanged(m_gradRadius/m_scale);
         update();
         return;
     }
 
+    /* Otherwise we have to handle the other scrolls */
+    /* If shift-scroll, rotate the polygon */
     if (event->modifiers() & Qt::ShiftModifier) {
         if (event->angleDelta().y() > 0)
             rotatePolygon(rotationStep);
         else
             rotatePolygon(-rotationStep);
-    } else if (event->modifiers() & Qt::ControlModifier) {
+    }
+    /* If ctrl-scroll, rescale the polygon */ 
+    else if (event->modifiers() & Qt::ControlModifier) {
         if (event->angleDelta().y() > 0)
             rescalePolygon(scaleFactor);
         else
             rescalePolygon(1./scaleFactor);
     }
+    /* If plain scroll, just change the zoom factor */
     else {
         if (event->angleDelta().y() > 0) {
             m_zoom *= zoomFactor;
@@ -631,5 +692,11 @@ void PolygonEditorWidget::setImagValues(const QVector<double>& points)
     }
 
     polygonChanged(m_points);
+    update();
+}
+
+void PolygonEditorWidget::setGradientsAtPoints(const std::vector<double>& grads)
+{
+    m_gradientsAtPoints = grads;
     update();
 }

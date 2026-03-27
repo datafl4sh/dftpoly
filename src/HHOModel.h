@@ -10,6 +10,7 @@
 #include "diskpp/methods/hho"
 #include "diskpp/bases/bases_utils.hpp"
 
+#define NUM_GRADIENT_DIRECTIONS 8
 
 enum class hho_variant {
     mixed_order_low,
@@ -34,7 +35,7 @@ private:
     
     std::vector<point_type> polypts;
 
-    float   gradientDelta;
+    float   gradientDelta = 1;
 
     void    recompute();
     void    computeGradients(float);

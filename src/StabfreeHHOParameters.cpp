@@ -17,9 +17,9 @@ StabfreeHHOParamsWidget::StabfreeHHOParamsWidget(QWidget *parent)
     hhoTypeCombo->setCurrentIndex(1);
 
     hhoVariantCombo = new QComboBox(this);
-    hhoVariantCombo->addItem("Mixed low");
     hhoVariantCombo->addItem("Equal order");
     hhoVariantCombo->addItem("Mixed high");
+    //hhoVariantCombo->addItem("Mixed low");
 
     hhoOrderCombo = new QComboBox(this);
     hhoOrderCombo->addItem("0");
@@ -44,35 +44,44 @@ StabfreeHHOParamsWidget::StabfreeHHOParamsWidget(QWidget *parent)
 
     QObject::connect(
         hhoTypeCombo, SIGNAL(currentIndexChanged(int)),
-        this, SLOT(hhoTypeChanged(int))
+        this, SLOT(priv_hhoTypeChanged(int))
     );
 
     QObject::connect(
         hhoVariantCombo, SIGNAL(currentIndexChanged(int)),
-        this, SLOT(hhoVariantChanged(int))
+        this, SLOT(priv_hhoVariantChanged(int))
     );
 
     QObject::connect(
         hhoOrderCombo, SIGNAL(currentIndexChanged(int)),
-        this, SLOT(hhoOrderChanged(int))
+        this, SLOT(priv_hhoOrderChanged(int))
     );
 }
 
 void
-StabfreeHHOParamsWidget::hhoTypeChanged(int index)
+StabfreeHHOParamsWidget::priv_hhoTypeChanged(int index)
 {
+    if (index == 0) {
+        emit hhoTypeChanged(false); /* Use standard */
+    }
+    else {
+        emit hhoTypeChanged(true); /* Use stabfree */
+    }
 }
 
 void
-StabfreeHHOParamsWidget::hhoOrderChanged(int index)
+StabfreeHHOParamsWidget::priv_hhoOrderChanged(int index)
 {
+    emit hhoOrderChanged(index);
 }
 
 void
-StabfreeHHOParamsWidget::hhoVariantChanged(int index)
+StabfreeHHOParamsWidget::priv_hhoVariantChanged(int index)
 {
     switch (index) {
-
+        case 0: emit hhoVariantChanged(hho_variant::equal_order); break;
+        case 1: emit hhoVariantChanged(hho_variant::mixed_order_high); break;
+        case 2: emit hhoVariantChanged(hho_variant::mixed_order_low); break;
     }
 }
 
