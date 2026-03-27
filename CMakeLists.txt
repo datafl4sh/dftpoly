@@ -4,7 +4,7 @@ project(polyfft)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(Diskpp_DIR "/home/matteo/workingcopies/diskpp/libdiskpp/build")
+set(Diskpp_DIR "/home/matteo/workingcopies/diskpp2/libdiskpp/build")
 find_package(Diskpp)
 
 message(STATUS "MP: ${CMAKE_MODULE_PATH}")

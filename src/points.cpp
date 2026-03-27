@@ -133,9 +133,9 @@ QPointF PolygonEditorWidget::centroid() const
     QPointF ret{0.0, 0.0};
     auto bar = barycenter();
     auto pa = 0.0;
-    for (int i = 1; i < m_points.size(); i++) {
-        auto p0 = m_points[i-1];
-        auto p1 = m_points[i];
+    for (int i = 0; i < m_points.size(); i++) {
+        auto p0 = m_points[i];
+        auto p1 = m_points[(i+1)%m_points.size()];
         double ta = signed_area(bar, p0, p1);
         pa += ta;
         ret += ta*(p0+p1+bar)/3.0;
@@ -177,7 +177,7 @@ QVector<QPointF> quadrature_points(const QPointF& a,
 Eigen::Matrix2d
 PolygonEditorWidget::structureTensor() const
 {
-    QPointF bar = barycenter();
+    QPointF bar = centroid();
 
     Eigen::Matrix2d S = Eigen::Matrix2d::Zero();
 
@@ -191,8 +191,8 @@ PolygonEditorWidget::structureTensor() const
         for (const auto& qp : qps) {
             auto p = qp - bar;
             Eigen::Matrix2d Sp; Sp <<
-                 qp.x()*qp.x(),  qp.x()*qp.y(),
-                 qp.y()*qp.x(),  qp.y()*qp.y();
+                 p.x()*p.x(),  p.x()*p.y(),
+                 p.y()*p.x(),  p.y()*p.y();
             S += qw * Sp;
         }
     }
@@ -309,13 +309,13 @@ PolygonEditorWidget::drawInertialQuantities(QPainter& p)
     Eigen::Matrix2d d = scaledPrincipalAxes();
     
 
-    QPointF bar = barycenter();
-    QPointF bars = worldToScreen(bar);
+    QPointF cog = centroid();
+    QPointF cogs = worldToScreen(cog);
 
-    QPointF v1{ bar.x() + d(0,0), bar.y() + d(1,0) };
+    QPointF v1{ cog.x() + d(0,0), cog.y() + d(1,0) };
     QPointF v1s = worldToScreen(v1);
 
-    QPointF v2{ bar.x() + d(0,1), bar.y() + d(1,1) };
+    QPointF v2{ cog.x() + d(0,1), cog.y() + d(1,1) };
     QPointF v2s = worldToScreen(v2);
 
     QPen pen(QColor(0, 50, 150), 1);
@@ -324,24 +324,27 @@ PolygonEditorWidget::drawInertialQuantities(QPainter& p)
 
 
     if (m_showInertiaAxes) {
-        drawArrow(p, bars, v1s);
-        drawArrow(p, bars, v2s);
+        drawArrow(p, cogs, v1s);
+        drawArrow(p, cogs, v2s);
     }
 
     if (m_showInertiaTransformed) {
         Eigen::Matrix2d id = d.inverse();
+        auto cog = centroid();
+        float cx = id(0,0)*cog.x() + id(0,1)*cog.y();
+        float cy = id(1,0)*cog.x() + id(1,1)*cog.y();
         QPolygonF poly;
         QVector<QPointF> tr_points;
         for (int i = 0; i < m_points.size(); ++i) {
             QPointF pt = m_points[i];
-            float rx = id(0,0)*pt.x() + id(0,1)*pt.y();
-            float ry = id(1,0)*pt.x() + id(1,1)*pt.y();
+            float rx = id(0,0)*pt.x() + id(0,1)*pt.y() - cx;
+            float ry = id(1,0)*pt.x() + id(1,1)*pt.y() - cy;
             QPointF screen = worldToScreen( QPointF{rx, ry} );
             tr_points.append( screen );
             poly << screen;
         }
 
-        p.setPen(QPen(Qt::yellow, 1));
+        p.setPen(QPen(QColor(200,200,50), 1));
         p.setBrush(Qt::NoBrush);
         p.drawPolygon(poly);
     
@@ -376,7 +379,10 @@ void PolygonEditorWidget::drawPoints(QPainter& p)
     QPointF cogs = worldToScreen(cog);
     p.drawRect(cogs.x()-4, cogs.y()-4, 8, 8);
 
-
+    p.setBrush(QColor(0, 120, 20));
+    QPointF bar = barycenter();
+    QPointF bars = worldToScreen(bar);
+    p.drawRect(bars.x()-2, bars.y()-2, 4, 4);
 
 }
 

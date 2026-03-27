@@ -109,10 +109,17 @@ class StabfreeHHOParamsWidget : public QWidget
 public:
     StabfreeHHOParamsWidget(QWidget *parent = nullptr);
 
+private slots:
+    void recompute(void);
+    void hhoTypeChanged(int);
+    void hhoOrderChanged(int);
+    void hhoVariantChanged(int);
+
 public slots:
     void polygonChanged(const QVector<QPointF>&);
 
 private:
+    QComboBox   *hhoTypeCombo;
     QComboBox   *hhoVariantCombo;
     QComboBox   *hhoOrderCombo;
     QLabel      *smallestEigLabel;
@@ -121,4 +128,5 @@ private:
     using point_type = disk::point<double, 2>;
     mesh_type msh;
     priv::config hhocfg;
+    std::vector<point_type> polypts;
 };
