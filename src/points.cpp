@@ -449,7 +449,7 @@ void PolygonEditorWidget::paintEvent(QPaintEvent *)
     drawPolygon(p);
     drawPoints(p);
     drawGradCircle(p);
-
+    drawDiskppNormals(p);
     QString zoomLevelText = QString("Zoom level: %1x")
         .arg(m_zoom, 0, 'f', 2);
     p.drawText(5, 15, zoomLevelText);

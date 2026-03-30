@@ -62,6 +62,8 @@ protected:
     void drawInertialQuantities(QPainter& p);
     void resizeEvent(QResizeEvent *) override;
 
+    void drawDiskppNormals(QPainter& p);
+
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *) override;
@@ -93,3 +95,5 @@ private:
 
     std::vector<double>     m_gradientsAtPoints;
 };
+
+void drawArrow(QPainter &painter, QPointF start, QPointF end);

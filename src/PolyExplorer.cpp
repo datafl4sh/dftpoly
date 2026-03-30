@@ -77,6 +77,10 @@ PolyExplorer::PolyExplorer()
     QObject::connect(
         stabfreeWidget, SIGNAL(hhoVariantChanged(hho_variant)),
         hhoModel, SLOT(setVariant(hho_variant)) );
+    
+    QObject::connect(
+        stabfreeWidget, SIGNAL(hhoIncrChanged(size_t)),
+        hhoModel, SLOT(setIncrAboveOpt(size_t)) );
 }
 
 void

@@ -8,7 +8,7 @@
 template<disk::mesh_2D Mesh>
 void
 adjust_stabfree_recdeg(const Mesh& msh, const typename Mesh::cell_type& cl,
-    disk::hho_degree_info& hdi)
+    disk::hho_degree_info& hdi, size_t addincr)
 {
     size_t cd = hdi.cell_degree();
     size_t fd = hdi.face_degree();
@@ -22,14 +22,14 @@ adjust_stabfree_recdeg(const Mesh& msh, const typename Mesh::cell_type& cl,
     size_t to = ((rpd+2)*(rpd+1))/2;
 
     if (from <= to) {
-        hdi.reconstruction_degree(rpd);
+        hdi.reconstruction_degree(rpd+addincr);
     }
     else {
         /* Every harmonic degree provides 2 additional dofs, therefore
          * we need an increment that it is sufficient to accomodate
          * (from-to) dofs => ((from - to) + (2-1))/2 */
         size_t incr = (from - to + 1)/2;
-        hdi.reconstruction_degree(rpd+incr);
+        hdi.reconstruction_degree(rpd+incr+addincr);
     }
 }
 
@@ -48,7 +48,7 @@ auto test(const Mesh& msh, const config& cfg)
     disk::hho_degree_info hdi(cfg.degree);
 
     if (cfg.use_stabfree) {
-        adjust_stabfree_recdeg(msh, cl, hdi);
+        adjust_stabfree_recdeg(msh, cl, hdi, cfg.incr_above_opt);
 
         if (cfg.variant == hho_variant::mixed_order_high) {
             auto oper = make_shl_face_proj_harmonic(msh, cl, hdi, Id);
@@ -106,6 +106,13 @@ void
 HHOModel::setDegree(size_t degree)
 {
     hhocfg.degree = degree;
+    recompute();
+}
+
+void
+HHOModel::setIncrAboveOpt(size_t iao)
+{
+    hhocfg.incr_above_opt = iao;
     recompute();
 }
 

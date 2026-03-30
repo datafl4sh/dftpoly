@@ -19,15 +19,18 @@ private slots:
     void priv_hhoTypeChanged(int);
     void priv_hhoOrderChanged(int);
     void priv_hhoVariantChanged(int);
+    void priv_hhoIncrChanged(int);
 
 signals:
     void hhoTypeChanged(bool);
     void hhoVariantChanged(hho_variant);
     void hhoOrderChanged(size_t);
+    void hhoIncrChanged(size_t);
 
 private:
     QComboBox   *hhoTypeCombo;
     QComboBox   *hhoVariantCombo;
     QComboBox   *hhoOrderCombo;
+    QComboBox   *hhoIncreaseCombo;
     QLabel      *smallestEigLabel;
 };

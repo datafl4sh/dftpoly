@@ -19,6 +19,7 @@ add_executable(polyfft
     src/PolyExplorer.cpp src/PolyDFTWidget.cpp
     src/StabfreeHHOParameters.cpp
     src/HHOModel.cpp
+    src/PolygonEditorWidget_diskpp.cpp
 )
 
 target_link_libraries(polyfft Qt6::Widgets Eigen3::Eigen diskpp::diskpp)

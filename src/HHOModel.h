@@ -21,6 +21,7 @@ struct config {
     size_t          degree = 0;
     bool            use_stabfree = true;
     hho_variant     variant;
+    size_t          incr_above_opt = 0;
 };
 
 
@@ -47,6 +48,7 @@ public slots:
     void    setPolygon(const QVector<QPointF>&);
     void    setDegree(size_t);
     void    useStabfree(bool);
+    void    setIncrAboveOpt(size_t);
     void    setVariant(hho_variant);
     void    setGradientDelta(float);
 

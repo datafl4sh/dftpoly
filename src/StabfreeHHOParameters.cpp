@@ -2,6 +2,9 @@
 #include <QLabel>
 #include <QGridLayout>
 #include <QString>
+#include <QGroupBox>
+#include <QVBoxLayout>
+#include <QFrame>
 
 
 
@@ -27,19 +30,39 @@ StabfreeHHOParamsWidget::StabfreeHHOParamsWidget(QWidget *parent)
     hhoOrderCombo->addItem("2");
     hhoOrderCombo->addItem("3");
 
+    hhoIncreaseCombo = new QComboBox(this);
+    hhoIncreaseCombo->addItem("0");
+    hhoIncreaseCombo->addItem("1");
+    hhoIncreaseCombo->addItem("2");
+    hhoIncreaseCombo->addItem("3");
+
     smallestEigLabel = new QLabel("--", this);
 
-    QGridLayout *layout = new QGridLayout(this);
+    QGroupBox *segb = new QGroupBox("Smallest eigenvalue", this);
+    QVBoxLayout *segb_layout = new QVBoxLayout;
+    segb_layout->addWidget(smallestEigLabel);
+    segb->setLayout(segb_layout);
 
+    auto createLine = []() {
+        QFrame *line = new QFrame;
+        line->setFrameShape(QFrame::HLine);
+        line->setFrameShadow(QFrame::Sunken);
+        return line;
+    };
+
+    QGridLayout *layout = new QGridLayout(this);
     layout->addWidget( new QLabel("HHO type:"), 0, 0);
     layout->addWidget( hhoTypeCombo, 0, 1);
     layout->addWidget( new QLabel("HHO variant:"), 1, 0);
     layout->addWidget( hhoVariantCombo, 1, 1);
     layout->addWidget( new QLabel("HHO order: "), 2, 0);
     layout->addWidget(hhoOrderCombo, 2, 1);
+    layout->addWidget( new QLabel("Incr. above optimal:"), 3, 0);
+    layout->addWidget( hhoIncreaseCombo, 3, 1);
     layout->setColumnStretch(0, 1);
     layout->setColumnStretch(1, 1);
-    layout->addWidget(smallestEigLabel, 3,0,1,2);
+    layout->addWidget(createLine(), 4, 0, 1, 2); 
+    layout->addWidget(segb, 5, 0, 1, 2);
     setLayout(layout);
 
     QObject::connect(
@@ -56,15 +79,22 @@ StabfreeHHOParamsWidget::StabfreeHHOParamsWidget(QWidget *parent)
         hhoOrderCombo, SIGNAL(currentIndexChanged(int)),
         this, SLOT(priv_hhoOrderChanged(int))
     );
+
+    QObject::connect(
+        hhoIncreaseCombo, SIGNAL(currentIndexChanged(int)),
+        this, SLOT(priv_hhoIncrChanged(int))
+    );
 }
 
 void
 StabfreeHHOParamsWidget::priv_hhoTypeChanged(int index)
 {
     if (index == 0) {
+        hhoIncreaseCombo->setEnabled(false);
         emit hhoTypeChanged(false); /* Use standard */
     }
     else {
+        hhoIncreaseCombo->setEnabled(true);
         emit hhoTypeChanged(true); /* Use stabfree */
     }
 }
@@ -83,6 +113,12 @@ StabfreeHHOParamsWidget::priv_hhoVariantChanged(int index)
         case 1: emit hhoVariantChanged(hho_variant::mixed_order_high); break;
         case 2: emit hhoVariantChanged(hho_variant::mixed_order_low); break;
     }
+}
+
+void
+StabfreeHHOParamsWidget::priv_hhoIncrChanged(int incr)
+{
+    emit hhoIncrChanged(incr);
 }
 
 void
