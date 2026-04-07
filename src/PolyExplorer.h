@@ -8,8 +8,10 @@
 #include "points.h"
 #include "PolyDFTWidget.h"
 
+#ifdef HAVE_DISKPP
 #include "StabfreeHHOParameters.h"
 #include "HHOModel.h"
+#endif
 
 class PolyExplorer : public QMainWindow {
 public:
@@ -26,6 +28,8 @@ private:
     PolygonEditorWidget     *polygonEditorWidget;
     PolyDFTWidget           *polyDFTWidget;
 
+#ifdef HAVE_DISKPP
     HHOModel                *hhoModel;
     StabfreeHHOParamsWidget *stabfreeWidget;
+#endif
 };

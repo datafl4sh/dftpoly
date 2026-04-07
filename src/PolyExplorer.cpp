@@ -24,8 +24,10 @@ PolyExplorer::PolyExplorer()
 
     makePolyDFTWidget();
 
+#ifdef HAVE_DISKPP
     makeStabfreeHHOWidget();
     hhoModel = new HHOModel();
+#endif
 
     QObject::connect(
         polygonEditorWidget, SIGNAL(polygonChanged(const QVector<QPointF>&)),
@@ -50,6 +52,7 @@ PolyExplorer::PolyExplorer()
         polyDFTWidget, SIGNAL(imagValuesChanged(const QVector<double>&)),
         polygonEditorWidget, SLOT(setImagValues(const QVector<double>&)) );
 
+#ifdef HAVE_DISKPP
     QObject::connect(
         polygonEditorWidget, SIGNAL(polygonChanged(const QVector<QPointF>&)),
         hhoModel, SLOT(setPolygon(const QVector<QPointF>&)) );
@@ -81,6 +84,7 @@ PolyExplorer::PolyExplorer()
     QObject::connect(
         stabfreeWidget, SIGNAL(hhoIncrChanged(size_t)),
         hhoModel, SLOT(setIncrAboveOpt(size_t)) );
+#endif /* HAVE_DISKPP */
 }
 
 void
@@ -125,6 +129,7 @@ PolyExplorer::makePolyDFTWidget()
     addDockWidget(Qt::BottomDockWidgetArea, dock);
 }
 
+#ifdef HAVE_DISKPP
 void
 PolyExplorer::makeStabfreeHHOWidget()
 {
@@ -136,3 +141,4 @@ PolyExplorer::makeStabfreeHHOWidget()
     viewMenu->addAction(dock->toggleViewAction());
     addDockWidget(Qt::RightDockWidgetArea, dock);
 }
+#endif /* HAVE_DISKPP */

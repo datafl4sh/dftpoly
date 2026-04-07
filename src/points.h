@@ -33,7 +33,10 @@ signals:
     void realValuesChanged(const QVector<double>& vals);
     void imagValuesChanged(const QVector<double>& vals);
     void zoomChanged(double zoom);
+
+#ifdef HAVE_DISKPP
     void gradientRadiusChanged(float);
+#endif
 
 public slots:
     void processPolygon(const QVector<QPointF>& points);
@@ -57,12 +60,14 @@ protected:
     void drawAxes(QPainter& p);
     void drawPolygon(QPainter& p);
     void drawPoints(QPainter& p);
-    void drawGradCircle(QPainter& p);
     void drawBoundingBox(QPainter& p);
     void drawInertialQuantities(QPainter& p);
     void resizeEvent(QResizeEvent *) override;
 
+#ifdef HAVE_DISKPP
+    void drawGradCircle(QPainter& p);
     void drawDiskppNormals(QPainter& p);
+#endif
 
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;

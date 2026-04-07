@@ -4,23 +4,28 @@ project(polyfft)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(Diskpp_DIR "/home/matteo/workingcopies/diskpp/libdiskpp/build")
+set(Diskpp_DIR "/home/matteo/workingcopies/diskpp2/libdiskpp/build")
 find_package(Diskpp)
 
-message(STATUS "MP: ${CMAKE_MODULE_PATH}")
-
 find_package(Eigen3 REQUIRED)
-
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
-add_executable(polyfft
-    src/main.cpp
-    src/points.cpp src/hist.cpp src/dft.cpp
-    src/PolyExplorer.cpp src/PolyDFTWidget.cpp
-    src/StabfreeHHOParameters.cpp
-    src/HHOModel.cpp
-    src/PolygonEditorWidget_diskpp.cpp
-)
+set(SOURCES_MAIN src/main.cpp src/points.cpp src/hist.cpp src/dft.cpp
+    src/PolyExplorer.cpp src/PolyDFTWidget.cpp )
 
-target_link_libraries(polyfft Qt6::Widgets Eigen3::Eigen diskpp::diskpp)
+set(SOURCES_DISKPP src/PolygonEditorWidget_diskpp.cpp src/HHOModel.cpp
+    src/StabfreeHHOParameters.cpp)
+
+set(SOURCES ${SOURCES_MAIN})
+if (Diskpp_FOUND)
+    set(SOURCES ${SOURCES} ${SOURCES_DISKPP})
+endif()
+
+add_executable(polyfft ${SOURCES})
+
+target_link_libraries(polyfft PUBLIC Qt6::Widgets Eigen3::Eigen)
+if(Diskpp_FOUND)
+    target_link_libraries(polyfft PUBLIC diskpp::diskpp)
+    target_compile_definitions(polyfft PUBLIC "HAVE_DISKPP")
+endif()
 set_property(TARGET polyfft PROPERTY AUTOMOC ON)

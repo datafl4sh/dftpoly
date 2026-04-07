@@ -7,7 +7,9 @@
 #include <QPointF>
 #include <QDebug>
 
+#ifdef HAVE_DISKPP
 #include "HHOModel.h"
+#endif
 
 #include "points.h"
 #include "dft.h"
@@ -314,6 +316,7 @@ void PolygonEditorWidget::drawPoints(QPainter& p)
     p.setBrush(Qt::NoBrush);
 }
 
+#ifdef HAVE_DISKPP
 void PolygonEditorWidget::drawGradCircle(QPainter& p)
 {
     /* Gradient radius and max descent direction */
@@ -362,6 +365,7 @@ void PolygonEditorWidget::drawGradCircle(QPainter& p)
     drawArrow(p, arrowStart, arrowEnd);
     p.setPen(Qt::NoPen);
 }
+#endif /* HAVE_DISKPP */
 
 void PolygonEditorWidget::drawBoundingBox(QPainter& p)
 {
@@ -448,8 +452,10 @@ void PolygonEditorWidget::paintEvent(QPaintEvent *)
     drawInertialQuantities(p);
     drawPolygon(p);
     drawPoints(p);
+#ifdef HAVE_DISKPP
     drawGradCircle(p);
     drawDiskppNormals(p);
+#endif /* HAVE_DISKPP */
     QString zoomLevelText = QString("Zoom level: %1x")
         .arg(m_zoom, 0, 'f', 2);
     p.drawText(5, 15, zoomLevelText);
@@ -535,6 +541,7 @@ void PolygonEditorWidget::wheelEvent(QWheelEvent *event)
 
     /* Check if we are above a point, if yes just modify
      * the gradient computation radius and return */
+#ifdef HAVE_DISKPP
     int point = findPoint(screenEventPos);
     if (point >= 0 and point < m_points.size()) {
         if (event->angleDelta().y() > 0) {
@@ -546,7 +553,7 @@ void PolygonEditorWidget::wheelEvent(QWheelEvent *event)
         update();
         return;
     }
-
+#endif /* HAVE_DISKPP */
     /* Otherwise we have to handle the other scrolls */
     /* If shift-scroll, rotate the polygon */
     if (event->modifiers() & Qt::ShiftModifier) {
