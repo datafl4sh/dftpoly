@@ -1,14 +1,16 @@
 cmake_minimum_required(VERSION 3.30)
-project(polyfft)
+project(PolygonExplorer)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(Diskpp_DIR "/home/matteo/workingcopies/diskpp2/libdiskpp/build")
-find_package(Diskpp)
+set(EXE_NAME polyexplorer)
 
 find_package(Eigen3 REQUIRED)
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
+
+set(Diskpp_DIR "/home/matteo/workingcopies/diskpp2/libdiskpp/build")
+find_package(Diskpp)
 
 set(SOURCES_MAIN src/main.cpp src/points.cpp src/hist.cpp src/dft.cpp
     src/PolyExplorer.cpp src/PolyDFTWidget.cpp )
@@ -21,11 +23,11 @@ if (Diskpp_FOUND)
     set(SOURCES ${SOURCES} ${SOURCES_DISKPP})
 endif()
 
-add_executable(polyfft ${SOURCES})
+add_executable(${EXE_NAME} ${SOURCES})
 
-target_link_libraries(polyfft PUBLIC Qt6::Widgets Eigen3::Eigen)
+target_link_libraries(${EXE_NAME} PUBLIC Qt6::Widgets Eigen3::Eigen)
 if(Diskpp_FOUND)
-    target_link_libraries(polyfft PUBLIC diskpp::diskpp)
-    target_compile_definitions(polyfft PUBLIC "HAVE_DISKPP")
+    target_link_libraries(${EXE_NAME} PUBLIC diskpp::diskpp)
+    target_compile_definitions(${EXE_NAME} PUBLIC "HAVE_DISKPP")
 endif()
-set_property(TARGET polyfft PROPERTY AUTOMOC ON)
+set_property(TARGET ${EXE_NAME} PROPERTY AUTOMOC ON)

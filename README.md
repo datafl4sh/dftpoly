@@ -1,5 +1,6 @@
-# Qt program to explore Fourier Descriptors
+# Qt program to explore polygons and related quantities
 
+## Fourier descriptors
 If you have a polygon of $n$ vertices, you can take the $(x_i,y_i)$ coordinates of its vertices and convert them in complex numbers $z_i = x_i + jy_i$ for all $0 \leq i < n$.
 
 If you take the DFT of the sequence so obtained, you get the so-called Fourier Descriptors, which give you information about the polygon.
@@ -19,3 +20,6 @@ The GUI works as follows:
 
 Also the DFT coefficients can be modified from the GUI, the polygon gets updated accordingly. Right-click on a DFT coefficient sets it to zero. Left bars are real parts of the coefficients, right bars are the immaginary parts.
 
+## Stabilization-free HHO
+If linked to DiSk++, the program can compute in real-time the coercivity constant
+of a given polygon for a given stabilization-free HHO method.
