@@ -49,6 +49,8 @@ public slots:
     void setShowBoundingBox(bool enabled);
     void setShowInertiaTransformed(bool enabled);
 
+    void savePolygon(void);
+
 protected:
     QPointF worldToScreen(const QPointF& w) const;
     QPointF screenToWorld(const QPointF& s) const;

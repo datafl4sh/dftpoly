@@ -5,6 +5,8 @@
 #include <QPointF>
 #include <vector>
 
+#include <Eigen/Dense>
+
 #include "diskpp/mesh/mesh.hpp"
 #include "diskpp/mesh/meshgen.hpp"
 #include "diskpp/methods/hho"
@@ -51,8 +53,11 @@ public slots:
     void    setIncrAboveOpt(size_t);
     void    setVariant(hho_variant);
     void    setGradientDelta(float);
+    void    saveEigenFunctions(void);
 
 signals:
     void    minEigenvalueChanged(double);
+    void    eigsGGChanged(const Eigen::VectorXd&);
+    void    eigsStiffChanged(const Eigen::VectorXd&);
     void    gradientsChanged(const std::vector<double>&);
 };

@@ -36,19 +36,15 @@ StabfreeHHOParamsWidget::StabfreeHHOParamsWidget(QWidget *parent)
     hhoIncreaseCombo->addItem("2");
     hhoIncreaseCombo->addItem("3");
 
-    smallestEigLabel = new QLabel("--", this);
-
-    QGroupBox *segb = new QGroupBox("Smallest eigenvalue", this);
-    QVBoxLayout *segb_layout = new QVBoxLayout;
-    segb_layout->addWidget(smallestEigLabel);
-    segb->setLayout(segb_layout);
-
     auto createLine = []() {
         QFrame *line = new QFrame;
         line->setFrameShape(QFrame::HLine);
         line->setFrameShadow(QFrame::Sunken);
         return line;
     };
+
+    specHHOGradGrad = new SpectrumWidget("Reconstruction eigs");
+    specStiffness = new SpectrumWidget("BCCM stiffness eigs");
 
     QGridLayout *layout = new QGridLayout(this);
     layout->addWidget( new QLabel("HHO type:"), 0, 0);
@@ -62,7 +58,8 @@ StabfreeHHOParamsWidget::StabfreeHHOParamsWidget(QWidget *parent)
     layout->setColumnStretch(0, 1);
     layout->setColumnStretch(1, 1);
     layout->addWidget(createLine(), 4, 0, 1, 2); 
-    layout->addWidget(segb, 5, 0, 1, 2);
+    layout->addWidget(specHHOGradGrad, 5, 0, 1, 2);
+    layout->addWidget(specStiffness, 6, 0, 1, 2);
     setLayout(layout);
 
     QObject::connect(
@@ -84,6 +81,18 @@ StabfreeHHOParamsWidget::StabfreeHHOParamsWidget(QWidget *parent)
         hhoIncreaseCombo, SIGNAL(currentIndexChanged(int)),
         this, SLOT(priv_hhoIncrChanged(int))
     );
+}
+
+void
+StabfreeHHOParamsWidget::setGradGradSpectrum(const Eigen::VectorXd& data)
+{
+    specHHOGradGrad->setSpectrum(data);
+}
+
+void
+StabfreeHHOParamsWidget::setStiffnessSpectrum(const Eigen::VectorXd& data)
+{
+    specStiffness->setSpectrum(data);
 }
 
 void
@@ -120,17 +129,4 @@ StabfreeHHOParamsWidget::priv_hhoIncrChanged(int incr)
 {
     emit hhoIncrChanged(incr);
 }
-
-void
-StabfreeHHOParamsWidget::setEigenvalue(double eig)
-{
-    QString text = QString("%1").arg(eig, 0, 'f', 15);
-    smallestEigLabel->setText(text);
-}
-
-//void
-//StabfreeHHOParamsWidget::recompute(void)
-//{
-//    
-//}
 

@@ -2,6 +2,9 @@
 #include <QComboBox>
 #include <QLabel>
 
+#include "BarWidget.h"
+#include "SpectrumWidget.h"
+
 #include "HHOModel.h"
 #include "hist.h"
 
@@ -13,7 +16,8 @@ public:
     StabfreeHHOParamsWidget(QWidget *parent = nullptr);
 
 public slots:
-    void setEigenvalue(double);
+    void setGradGradSpectrum(const Eigen::VectorXd&);
+    void setStiffnessSpectrum(const Eigen::VectorXd&);
 
 private slots:
     void priv_hhoTypeChanged(int);
@@ -32,5 +36,8 @@ private:
     QComboBox   *hhoVariantCombo;
     QComboBox   *hhoOrderCombo;
     QComboBox   *hhoIncreaseCombo;
-    QLabel      *smallestEigLabel;
+
+    SpectrumWidget  *specHHOGradGrad;
+    SpectrumWidget  *specStiffness;
+    
 };

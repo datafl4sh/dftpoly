@@ -12,6 +12,12 @@ PolyExplorer::PolyExplorer()
 
     QMenuBar *menuBar = this->menuBar();
     QMenu *fileMenu = menuBar->addMenu("File");
+
+    QAction *savePolyAction = new QAction("Save polygon", this);
+    fileMenu->addAction(savePolyAction);
+    QObject::connect(savePolyAction, &QAction::triggered,
+        this, &PolyExplorer::savePolygon );
+
     QAction *exitAction = new QAction("Exit", this);
     fileMenu->addAction(exitAction);
     connect(exitAction, &QAction::triggered, this, &QWidget::close);
@@ -27,6 +33,13 @@ PolyExplorer::PolyExplorer()
 #ifdef HAVE_DISKPP
     makeStabfreeHHOWidget();
     hhoModel = new HHOModel();
+
+    QMenu *hhoMenu = menuBar->addMenu("HHO");
+    QAction *saveEigFunsAction = new QAction("Save eigenfunctions", this);
+    hhoMenu->addAction(saveEigFunsAction);
+    connect(saveEigFunsAction, &QAction::triggered,
+        this, &PolyExplorer::saveEigenFunctions);
+
 #endif
 
     QObject::connect(
@@ -65,9 +78,18 @@ PolyExplorer::PolyExplorer()
         hhoModel, SIGNAL(gradientsChanged(const std::vector<double>&)),
         polygonEditorWidget, SLOT(setGradientsAtPoints(const std::vector<double>&)) );
 
+    //QObject::connect(
+    //    hhoModel, SIGNAL(minEigenvalueChanged(double)),
+    //    stabfreeWidget, SLOT(setEigenvalue(double)) );
+
     QObject::connect(
-        hhoModel, SIGNAL(minEigenvalueChanged(double)),
-        stabfreeWidget, SLOT(setEigenvalue(double)) );
+        hhoModel, SIGNAL(eigsGGChanged(const Eigen::VectorXd&)),
+        stabfreeWidget, SLOT(setGradGradSpectrum(const Eigen::VectorXd&)) );
+
+    QObject::connect(
+        hhoModel, SIGNAL(eigsStiffChanged(const Eigen::VectorXd&)),
+        stabfreeWidget, SLOT(setStiffnessSpectrum(const Eigen::VectorXd&)) );
+
 
     QObject::connect(
         stabfreeWidget, SIGNAL(hhoTypeChanged(bool)),
@@ -129,7 +151,20 @@ PolyExplorer::makePolyDFTWidget()
     addDockWidget(Qt::BottomDockWidgetArea, dock);
 }
 
+void
+PolyExplorer::savePolygon()
+{
+    polygonEditorWidget->savePolygon();
+}
+
 #ifdef HAVE_DISKPP
+
+void
+PolyExplorer::saveEigenFunctions()
+{
+    hhoModel->saveEigenFunctions();
+}
+
 void
 PolyExplorer::makeStabfreeHHOWidget()
 {

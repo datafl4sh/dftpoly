@@ -707,3 +707,13 @@ void PolygonEditorWidget::setGradientsAtPoints(const std::vector<double>& grads)
     m_gradientsAtPoints = grads;
     update();
 }
+
+void
+PolygonEditorWidget::savePolygon(void)
+{
+    std::ofstream ofs("polygon.csv");
+
+    for (auto& point : m_points) {
+        ofs << std::setprecision(15) << point.x() << " " << point.y() << std::endl;
+    }
+}

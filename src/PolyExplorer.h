@@ -17,6 +17,12 @@ class PolyExplorer : public QMainWindow {
 public:
     PolyExplorer();
 
+public slots:
+    void savePolygon(void);
+#ifdef HAVE_DISKPP
+    void saveEigenFunctions();
+#endif
+
 private:
     void makePolygonMenu();
     void makePolyDFTWidget();
